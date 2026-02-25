@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, User, Settings, LogOut } from 'lucide-react';
-import { auth } from '../lib/firebase';
-import { useAuth } from '../context/AuthContext';
+import { auth } from '../../lib/firebase';
+import { useAuth } from '../../context/AuthContext';
 
 const DashboardLayout = ({ children, title }) => {
     const { user } = useAuth();

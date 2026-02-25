@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Rocket, ChevronRight, LogOut } from 'lucide-react';
-import { auth } from '../lib/firebase';
+import { auth } from '../../lib/firebase';
 
 const AccesoRequerido = () => {
     const handleLogout = () => auth.signOut();
