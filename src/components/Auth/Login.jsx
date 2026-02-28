@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Shield, Mail, Lock, LogIn, Chrome, AlertCircle, RefreshCw } from 'lucide-react';
 import { auth, googleProvider } from '../../lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Mail, Lock, LogIn, Github as GoogleIcon, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 const Login = () => {
-    const { user, loading: authLoading } = useAuth();
-    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const { user, loading: authLoading, authError } = useAuth();
 
     useEffect(() => {
         if (!authLoading && user) {
@@ -22,25 +19,9 @@ const Login = () => {
         }
     }, [user, authLoading, navigate]);
 
-    const handleEmailLogin = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            navigate('/');
-        } catch (err) {
-            setError('Credenciales incorrectas. Inténtalo de nuevo.');
-            console.error(err);
-        }
-        setLoading(false);
-    };
-
     const handleGoogleLogin = async () => {
         try {
-            // Detectar si es dispositivo móvil para usar redirect en lugar de popup
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
             if (isMobile) {
                 await signInWithRedirect(auth, googleProvider);
             } else {
@@ -53,93 +34,145 @@ const Login = () => {
         }
     };
 
+    const handleEmailLogin = async (e) => {
+        e.preventDefault();
+        setError('');
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            navigate('/');
+        } catch (err) {
+            console.error("Error login:", err.code);
+            if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                setError('Email o contraseña incorrectos.');
+            } else if (err.code === 'auth/too-many-requests') {
+                setError('Demasiados intentos. Inténtalo más tarde.');
+            } else {
+                setError('Error al iniciar sesión. Verifica tu conexión.');
+            }
+        }
+    };
+
+    const handleResetApp = () => {
+        if (window.confirm("¿Deseas reiniciar la sesión? Se limpiará la memoria local para resolver bloqueos.")) {
+            localStorage.clear();
+            sessionStorage.clear();
+            auth.signOut().then(() => {
+                window.location.reload();
+            });
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-background-dark flex items-center justify-center p-6 relative overflow-hidden font-display">
-            {/* Dynamic Background Elements */}
-            <div className="absolute top-20 right-20 w-64 h-64 bg-primary/20 blur-[100px] rounded-full animate-pulse-slow" />
-            <div className="absolute bottom-20 left-20 w-64 h-64 bg-secondary/20 blur-[100px] rounded-full animate-pulse-slow" />
+        <div className="min-h-screen bg-background-dark flex items-center justify-center p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
+            </div>
 
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="max-w-md w-full glass p-10 rounded-[2.5rem] relative z-10 border-white/5"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full max-w-md relative z-10"
             >
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-6">
-                        <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-                        <span className="text-primary text-[10px] font-bold uppercase tracking-widest">Portal de Academia</span>
+                <div className="text-center mb-8">
+                    <div className="inline-flex p-4 rounded-3xl bg-primary/10 border border-primary/20 mb-6 font-display">
+                        <Shield className="w-12 h-12 text-primary" />
                     </div>
-                    <h2 className="text-4xl font-black italic uppercase tracking-tighter">
-                        Entrena <span className="text-primary text-glow">Hero</span>
-                    </h2>
-                    <p className="text-slate-500 text-sm mt-2">La aventura te espera. Identifícate, Héroe.</p>
+                    <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white mb-2">
+                        ENTRENA <span className="text-primary text-glow">HERO</span>
+                    </h1>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Portal de Acceso a la Academia</p>
                 </div>
 
-                {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl flex items-center gap-3 mb-6 text-sm">
-                        <AlertCircle size={18} />
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleEmailLogin} className="space-y-4">
-                    <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={20} />
-                        <input
-                            type="email"
-                            placeholder="Correo Electrónico"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-light"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="relative group">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={20} />
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Contraseña Secreta"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-light"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                <div className="glass p-8 rounded-[2.5rem] border-white/10 shadow-2xl">
+                    {(error || authError) && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 mb-6"
                         >
-                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            <AlertCircle size={20} />
+                            <p className="text-xs font-bold uppercase tracking-tight">{error || authError}</p>
+                        </motion.div>
+                    )}
+
+                    <form onSubmit={handleEmailLogin} className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Email de Héroe</label>
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                                <input
+                                    type="email"
+                                    placeholder="nombre@ejemplo.com"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Contraseña</label>
+                            <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                                <input
+                                    type="password"
+                                    placeholder="••••••••"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={authLoading}
+                            className="btn-primary w-full py-4 text-lg group"
+                        >
+                            {authLoading ? 'CONECTANDO...' : (
+                                <>
+                                    ACCEDER A LA MISIÓN
+                                    <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </button>
+                    </form>
+
+                    <div className="relative my-8">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-white/10" />
+                        </div>
+                        <div className="relative flex justify-center text-[10px]">
+                            <span className="bg-[#0f172a] px-4 text-slate-500 font-bold uppercase tracking-widest">O entrar con</span>
+                        </div>
                     </div>
 
                     <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                        onClick={handleGoogleLogin}
+                        disabled={authLoading}
+                        className="w-full bg-white text-black font-black uppercase tracking-tighter py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 transition-all text-sm mb-6"
                     >
-                        {loading ? 'Sincronizando...' : <><LogIn size={20} /> Entrar a la Academia</>}
+                        <Chrome className="w-5 h-5" />
+                        CONTINUAR CON GOOGLE
                     </button>
-                </form>
 
-                <div className="my-8 flex items-center gap-4 text-slate-600">
-                    <div className="h-px bg-white/5 flex-1" />
-                    <span className="text-xs font-bold uppercase tracking-widest">O entrar con</span>
-                    <div className="h-px bg-white/5 flex-1" />
+                    <div className="text-center space-y-4">
+                        <p className="text-xs text-slate-500 font-bold">
+                            ¿NUEVO EN LA ACADEMIA? <Link to="/register" className="text-primary hover:text-primary-light transition-colors ml-1 italic">CREAR PERFIL</Link>
+                        </p>
+
+                        <button
+                            onClick={handleResetApp}
+                            className="text-[9px] text-slate-600 hover:text-slate-400 font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 mx-auto transition-all"
+                        >
+                            <RefreshCw size={12} />
+                            Reiniciar sistema (Limpiar caché)
+                        </button>
+                    </div>
                 </div>
-
-                <button
-                    onClick={handleGoogleLogin}
-                    className="w-full bg-white text-slate-900 font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-slate-100 active:scale-95"
-                >
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                    Cuenta de Google
-                </button>
-
-                <p className="text-center text-slate-500 text-xs mt-10">
-                    ¿Aún no eres un héroe? <Link to="/register" className="text-primary font-bold cursor-pointer hover:underline">¡Únete a la academia!</Link>
-                </p>
             </motion.div>
         </div>
     );
