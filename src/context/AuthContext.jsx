@@ -13,26 +13,39 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         let unsubscribeDoc = null;
 
-        // Aseguramos la persistencia para que el móvil no pierda la sesión durante el salto a Google
+        // Persistencia local obligatoria
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const handleAuthChange = (firebaseUser) => {
-            // Si el estado cambia, limpiamos cualquier conexión previa
+        // MANEJO DE REGRESO DE GOOGLE (CRÍTICO)
+        // Buscamos si el usuario acaba de volver de una redirección informativa
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result?.user) {
+                    console.log("Sesión de Google recuperada con éxito");
+                    setUser(result.user);
+                }
+            })
+            .catch((error) => {
+                console.error("Error al recuperar sesión desde redirect:", error);
+                setLoading(false);
+            });
+
+        const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
             if (unsubscribeDoc) {
                 unsubscribeDoc();
                 unsubscribeDoc = null;
             }
 
             if (firebaseUser) {
-                const userRef = doc(db, 'users', firebaseUser.uid);
                 setUser(firebaseUser);
+                const userRef = doc(db, 'users', firebaseUser.uid);
 
-                // IMPORTANTE: No marcamos loading como false hasta que Firestore responda
+                // Esperamos los datos de Premium antes de liberar la pantalla
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Crear documento si no existe (primer ingreso)
+                        // Crear perfil para nuevo héroe
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -52,14 +65,6 @@ export const AuthProvider = ({ children }) => {
                 setUserData(null);
                 setLoading(false);
             }
-        };
-
-        const unsubscribeAuth = onAuthStateChanged(auth, handleAuthChange);
-
-        // Capturar resultado de redirección de Google (Vital para móviles)
-        getRedirectResult(auth).catch((error) => {
-            console.error("Redirect Error:", error);
-            setLoading(false);
         });
 
         return () => {

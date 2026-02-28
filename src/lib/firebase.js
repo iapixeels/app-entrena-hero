@@ -4,10 +4,10 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
-// Datos sincronizados exactamente con la imagen de la consola Firebase del usuario
+// Sincronización de dominio personalizada para evitar bloqueos en móviles
 const firebaseConfig = {
     apiKey: "AIzaSyBtikiFAqpZmFTZnQUXtRzy7WlQMNVli00",
-    authDomain: "app-final-entrena-hero.firebaseapp.com",
+    authDomain: "app-final-entrena-hero.web.app", // Cambiado para coincidir con la URL de acceso
     projectId: "app-final-entrena-hero",
     storageBucket: "app-final-entrena-hero.firebasestorage.app",
     messagingSenderId: "1069470235003",
