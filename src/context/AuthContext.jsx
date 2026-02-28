@@ -13,39 +13,23 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         let unsubscribeDoc = null;
 
-        // Persistencia local obligatoria
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        // MANEJO DE REGRESO DE GOOGLE (CRÍTICO)
-        // Buscamos si el usuario acaba de volver de una redirección informativa
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result?.user) {
-                    console.log("Sesión de Google recuperada con éxito");
-                    setUser(result.user);
-                }
-            })
-            .catch((error) => {
-                console.error("Error al recuperar sesión desde redirect:", error);
-                setLoading(false);
-            });
-
-        const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+        const handleAuthChange = (firebaseUser) => {
             if (unsubscribeDoc) {
                 unsubscribeDoc();
                 unsubscribeDoc = null;
             }
 
             if (firebaseUser) {
-                setUser(firebaseUser);
+                // USAMOS 'users' POR ESTÁNDAR. ASEGÚRATE QUE LA REGLA EN FIREBASE DIGA 'users'
                 const userRef = doc(db, 'users', firebaseUser.uid);
+                setUser(firebaseUser);
 
-                // Esperamos los datos de Premium antes de liberar la pantalla
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Crear perfil para nuevo héroe
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -53,11 +37,16 @@ export const AuthProvider = ({ children }) => {
                             heroProfile: { name: firebaseUser.displayName || 'Héroe', gender: 'boy', avatar: 1 },
                             createdAt: serverTimestamp()
                         };
-                        setDoc(userRef, initData).catch(console.error);
+                        setDoc(userRef, initData).catch(err => {
+                            console.error("Error al crear usuario:", err);
+                            alert("ERROR CRÍTICO: No se puede crear tu perfil. Revisa las reglas de Firestore.");
+                        });
                     }
                     setLoading(false);
                 }, (error) => {
                     console.error("Firestore Error:", error);
+                    // Si sale este mensaje, es que la regla de Firestore está mal escrita
+                    alert("ERROR DE PERMISOS: Firestore ha bloqueado el acceso. Verifica que la regla sea para la colección 'users' (con 'e' y 's').");
                     setLoading(false);
                 });
             } else {
@@ -65,6 +54,15 @@ export const AuthProvider = ({ children }) => {
                 setUserData(null);
                 setLoading(false);
             }
+        };
+
+        const unsubscribeAuth = onAuthStateChanged(auth, handleAuthChange);
+
+        getRedirectResult(auth).catch((error) => {
+            if (error.code !== 'auth/redirect-cancelled-by-user') {
+                alert("Error de Google: " + error.message);
+            }
+            setLoading(false);
         });
 
         return () => {
@@ -73,20 +71,12 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
-    // Verificación de Premium Flexible
     const isPremium = userData?.accesoPremium === true ||
         String(userData?.accesoPremium).toLowerCase() === 'true' ||
         userData?.accesoPremium === 1;
 
-    const value = {
-        user,
-        userData,
-        isPremium,
-        loading
-    };
-
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{ user, userData, isPremium, loading }}>
             {children}
         </AuthContext.Provider>
     );
