@@ -12,9 +12,9 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let unsubscribeDoc = null;
-        let authHandchecked = false;
+        let isGoogleRedirecting = true; // Empezamos asumiendo que Google está trabajando
 
-        // Forzamos persistencia total
+        // Persistencia para que el móvil no olvide al usuario
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
         const handleAuth = async (firebaseUser) => {
@@ -24,12 +24,12 @@ export const AuthProvider = ({ children }) => {
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 setUser(firebaseUser);
 
-                // Esperamos los datos de Firestore antes de liberar la pantalla
+                // Escucha activa de Firestore
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Crear perfil si es nuevo
+                        // Creación de perfil para usuarios de Google nuevos
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -39,14 +39,13 @@ export const AuthProvider = ({ children }) => {
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }
-                    setLoading(false);
+                    if (!isGoogleRedirecting) setLoading(false);
                 }, (error) => {
-                    console.error("Firestore Error:", error);
-                    setLoading(false);
+                    if (!isGoogleRedirecting) setLoading(false);
                 });
             } else {
-                // Solo marcamos como no cargando si ya comprobamos que no hay redirección pendiente
-                if (authHandchecked) {
+                // Solo permitimos quitar el loading si Google ya terminó su proceso
+                if (!isGoogleRedirecting) {
                     setUser(null);
                     setUserData(null);
                     setLoading(false);
@@ -54,22 +53,27 @@ export const AuthProvider = ({ children }) => {
             }
         };
 
-        // Escuchar cambios de Auth
+        // Escuchar cambios de autenticación
         const unsubscribeAuth = onAuthStateChanged(auth, handleAuth);
 
-        // Bloqueo de seguridad para procesos de redirección (Móviles)
-        getRedirectResult(auth).then((result) => {
-            authHandchecked = true;
-            if (result?.user) {
-                handleAuth(result.user);
-            } else if (!auth.currentUser) {
+        // MANEJO CRÍTICO DE REDIRECCIÓN (GOOGLE MÓVIL)
+        getRedirectResult(auth)
+            .then((result) => {
+                isGoogleRedirecting = false;
+                if (result?.user) {
+                    handleAuth(result.user);
+                } else if (!auth.currentUser) {
+                    setLoading(false);
+                } else {
+                    // Si ya hay un usuario (por persistencia), quitamos carga
+                    setLoading(false);
+                }
+            })
+            .catch((error) => {
+                console.error("Error en redirección Google:", error);
+                isGoogleRedirecting = false;
                 setLoading(false);
-            }
-        }).catch((err) => {
-            console.error("Redirect Error:", err);
-            authHandchecked = true;
-            setLoading(false);
-        });
+            });
 
         return () => {
             unsubscribeAuth();
