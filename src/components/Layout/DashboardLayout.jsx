@@ -1,12 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, User, Settings, LogOut } from 'lucide-react';
-import { auth } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
 
 const DashboardLayout = ({ children, title, onProfileClick, onSettingsClick, onHomeClick }) => {
-    const { user, userData } = useAuth();
-    const handleLogout = () => auth.signOut();
+    const { user, userData, logout } = useAuth();
 
     return (
         <div className="min-h-screen bg-background-dark text-slate-100 font-display flex flex-col">
@@ -17,7 +15,7 @@ const DashboardLayout = ({ children, title, onProfileClick, onSettingsClick, onH
                         <Shield size={24} className="text-white" />
                     </div>
                     <span className="text-xl font-black italic uppercase tracking-tighter hidden md:block">
-                        Entrena <span className="text-primary">Hero</span>
+                        Entrena <span className="text-primary text-glow">Hero</span>
                     </span>
                 </div>
 
@@ -33,11 +31,12 @@ const DashboardLayout = ({ children, title, onProfileClick, onSettingsClick, onH
                     </div>
 
                     <button
-                        onClick={handleLogout}
-                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                        onClick={logout}
+                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer flex items-center gap-2 group/logout"
                         title="Cerrar Sesión"
                     >
-                        <LogOut size={20} />
+                        <LogOut size={20} className="group-hover/logout:translate-x-1 transition-transform" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline opacity-0 group-hover/logout:opacity-100 transition-opacity">Salir</span>
                     </button>
                 </div>
             </nav>
@@ -76,6 +75,13 @@ const DashboardLayout = ({ children, title, onProfileClick, onSettingsClick, onH
                     className="text-slate-500 hover:text-white hover:scale-125 transition-transform active:scale-95"
                 >
                     <Settings size={24} />
+                </button>
+                <button
+                    onClick={logout}
+                    className="text-slate-500 hover:text-red-500 hover:scale-125 transition-transform active:scale-95"
+                    title="Cerrar Sesión"
+                >
+                    <LogOut size={24} />
                 </button>
             </nav>
         </div>

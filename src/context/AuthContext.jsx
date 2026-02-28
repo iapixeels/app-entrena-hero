@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -12,13 +12,16 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let unsubscribeDoc = null;
-        let isMounting = true;
+        let isHandlingRedirect = true;
 
-        // Persistencia para que el móvil no olvide la sesión
+        // Persistencia para móviles
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const syncProfile = (firebaseUser) => {
-            if (unsubscribeDoc) unsubscribeDoc();
+        const syncUser = (firebaseUser) => {
+            if (unsubscribeDoc) {
+                unsubscribeDoc();
+                unsubscribeDoc = null;
+            }
 
             if (firebaseUser) {
                 const userRef = doc(db, 'users', firebaseUser.uid);
@@ -28,7 +31,7 @@ export const AuthProvider = ({ children }) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Creación silenciosa del perfil
+                        // Crear perfil para el nuevo héroe
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -38,41 +41,45 @@ export const AuthProvider = ({ children }) => {
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }
-                    if (isMounting) setLoading(false);
-                }, (err) => {
-                    console.error("Firestore Error:", err);
+                    if (!isHandlingRedirect) setLoading(false);
+                }, (error) => {
+                    console.error("Firestore Error:", error);
                     setLoading(false);
                 });
             } else {
                 setUser(null);
                 setUserData(null);
-                setLoading(false);
+                if (!isHandlingRedirect) setLoading(false);
             }
         };
 
-        // GESTIÓN DE REDIRECCIÓN (VITAL PARA MÓVILES)
-        const checkAuth = async () => {
-            try {
-                // Primero esperamos a ver si venimos de Google
-                const result = await getRedirectResult(auth);
+        // Procesar resultado de Google (especialmente para móviles)
+        getRedirectResult(auth)
+            .then((result) => {
+                isHandlingRedirect = false;
                 if (result?.user) {
-                    syncProfile(result.user);
+                    syncUser(result.user);
                 } else {
-                    // Si no es un regreso de Google, escuchamos el estado persistente
-                    onAuthStateChanged(auth, (u) => {
-                        syncProfile(u);
-                    });
+                    // Si no venimos de un redirect, evaluamos el usuario actual
+                    syncUser(auth.currentUser);
                 }
-            } catch (error) {
-                console.error("Auth Error:", error);
+            })
+            .catch((error) => {
+                console.error("Redirect Error:", error);
+                isHandlingRedirect = false;
                 setLoading(false);
-            }
-        };
+            });
 
-        checkAuth();
+        // Este listener escucha siempre (incluyendo el Logout)
+        const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
+            // Solo procesamos aquí si ya terminó el chequeo inicial de Google
+            if (!isHandlingRedirect) {
+                syncUser(u);
+            }
+        });
 
         return () => {
-            isMounting = false;
+            unsubscribeAuth();
             if (unsubscribeDoc) unsubscribeDoc();
         };
     }, []);
@@ -81,8 +88,18 @@ export const AuthProvider = ({ children }) => {
         String(userData?.accesoPremium).toLowerCase() === 'true' ||
         userData?.accesoPremium === 1;
 
+    const logout = async () => {
+        try {
+            await auth.signOut();
+            // Recargamos para limpiar cualquier residuo de Google en el móvil
+            window.location.href = '/login';
+        } catch (error) {
+            console.error("Error al cerrar sesión:", error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, userData, isPremium, loading }}>
+        <AuthContext.Provider value={{ user, userData, isPremium, loading, logout }}>
             {children}
         </AuthContext.Provider>
     );
