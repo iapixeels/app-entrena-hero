@@ -4,15 +4,16 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
-// Sincronización de dominio personalizada para evitar bloqueos en móviles
+// Restauramos el dominio original autorizado por Google para evitar el Error 400
+// pero mantenemos los IDs correctos de tu imagen.
 const firebaseConfig = {
     apiKey: "AIzaSyBtikiFAqpZmFTZnQUXtRzy7WlQMNVli00",
-    authDomain: "app-final-entrena-hero.web.app", // Cambiado para coincidir con la URL de acceso
+    authDomain: "app-final-entrena-hero.firebaseapp.com", // Dominio oficial autorizado
     projectId: "app-final-entrena-hero",
     storageBucket: "app-final-entrena-hero.firebasestorage.app",
     messagingSenderId: "1069470235003",
-    appId: "1:1069470235003:web:5f8db8f5c1c1377e7625de",
-    measurementId: "G-CD7JHWSS45"
+    appId: "1:1069470235003:web:5f8db8f5c1c1377e7625de", // El ID correcto de tu imagen
+    measurementId: "G-CD7JHWSS45" // El Measurement ID de tu imagen
 };
 
 const app = initializeApp(firebaseConfig);
