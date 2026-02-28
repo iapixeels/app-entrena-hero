@@ -4,14 +4,15 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
+// Datos sincronizados exactamente con la imagen de la consola Firebase del usuario
 const firebaseConfig = {
     apiKey: "AIzaSyBtikiFAqpZmFTZnQUXtRzy7WlQMNVli00",
     authDomain: "app-final-entrena-hero.firebaseapp.com",
     projectId: "app-final-entrena-hero",
     storageBucket: "app-final-entrena-hero.firebasestorage.app",
     messagingSenderId: "1069470235003",
-    appId: "1:1069470235003:web:13305e5ed832612d7625de",
-    measurementId: "G-FFHVSHJ90J"
+    appId: "1:1069470235003:web:5f8db8f5c1c1377e7625de",
+    measurementId: "G-CD7JHWSS45"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -24,7 +25,7 @@ let analytics = null;
 try {
     analytics = getAnalytics(app);
 } catch (e) {
-    console.warn("Analytics not supported or blocked:", e);
+    console.warn("Analytics blocked or not supported:", e);
 }
 
 export { analytics };
