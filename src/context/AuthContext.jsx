@@ -12,24 +12,24 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let unsubscribeDoc = null;
+        let authHandchecked = false;
 
+        // Forzamos persistencia total
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const handleAuthChange = (firebaseUser) => {
-            if (unsubscribeDoc) {
-                unsubscribeDoc();
-                unsubscribeDoc = null;
-            }
+        const handleAuth = async (firebaseUser) => {
+            if (unsubscribeDoc) unsubscribeDoc();
 
             if (firebaseUser) {
-                // USAMOS 'users' POR ESTÁNDAR. ASEGÚRATE QUE LA REGLA EN FIREBASE DIGA 'users'
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 setUser(firebaseUser);
 
+                // Esperamos los datos de Firestore antes de liberar la pantalla
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
+                        // Crear perfil si es nuevo
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -37,31 +37,37 @@ export const AuthProvider = ({ children }) => {
                             heroProfile: { name: firebaseUser.displayName || 'Héroe', gender: 'boy', avatar: 1 },
                             createdAt: serverTimestamp()
                         };
-                        setDoc(userRef, initData).catch(err => {
-                            console.error("Error al crear usuario:", err);
-                            alert("ERROR CRÍTICO: No se puede crear tu perfil. Revisa las reglas de Firestore.");
-                        });
+                        setDoc(userRef, initData).catch(console.error);
                     }
                     setLoading(false);
                 }, (error) => {
                     console.error("Firestore Error:", error);
-                    // Si sale este mensaje, es que la regla de Firestore está mal escrita
-                    alert("ERROR DE PERMISOS: Firestore ha bloqueado el acceso. Verifica que la regla sea para la colección 'users' (con 'e' y 's').");
                     setLoading(false);
                 });
             } else {
-                setUser(null);
-                setUserData(null);
-                setLoading(false);
+                // Solo marcamos como no cargando si ya comprobamos que no hay redirección pendiente
+                if (authHandchecked) {
+                    setUser(null);
+                    setUserData(null);
+                    setLoading(false);
+                }
             }
         };
 
-        const unsubscribeAuth = onAuthStateChanged(auth, handleAuthChange);
+        // Escuchar cambios de Auth
+        const unsubscribeAuth = onAuthStateChanged(auth, handleAuth);
 
-        getRedirectResult(auth).catch((error) => {
-            if (error.code !== 'auth/redirect-cancelled-by-user') {
-                alert("Error de Google: " + error.message);
+        // Bloqueo de seguridad para procesos de redirección (Móviles)
+        getRedirectResult(auth).then((result) => {
+            authHandchecked = true;
+            if (result?.user) {
+                handleAuth(result.user);
+            } else if (!auth.currentUser) {
+                setLoading(false);
             }
+        }).catch((err) => {
+            console.error("Redirect Error:", err);
+            authHandchecked = true;
             setLoading(false);
         });
 
