@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -12,24 +12,24 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let unsubscribeDoc = null;
-        let isGoogleRedirecting = true; // Empezamos asumiendo que Google está trabajando
+        let isRedirecting = true; // Forzamos estado de espera inicial
 
-        // Persistencia para que el móvil no olvide al usuario
+        // Aseguramos persistencia local para que no se pierda la sesión al recargar
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const handleAuth = async (firebaseUser) => {
+        const handleUserData = (firebaseUser) => {
             if (unsubscribeDoc) unsubscribeDoc();
 
             if (firebaseUser) {
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 setUser(firebaseUser);
 
-                // Escucha activa de Firestore
+                // Escucha de Firestore en tiempo real para datos Premium
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Creación de perfil para usuarios de Google nuevos
+                        // Crear perfil para el nuevo Héroe de Google
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -39,13 +39,13 @@ export const AuthProvider = ({ children }) => {
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }
-                    if (!isGoogleRedirecting) setLoading(false);
+                    if (!isRedirecting) setLoading(false);
                 }, (error) => {
-                    if (!isGoogleRedirecting) setLoading(false);
+                    console.error("Firestore Error:", error);
+                    if (!isRedirecting) setLoading(false);
                 });
             } else {
-                // Solo permitimos quitar el loading si Google ya terminó su proceso
-                if (!isGoogleRedirecting) {
+                if (!isRedirecting) {
                     setUser(null);
                     setUserData(null);
                     setLoading(false);
@@ -53,25 +53,25 @@ export const AuthProvider = ({ children }) => {
             }
         };
 
-        // Escuchar cambios de autenticación
-        const unsubscribeAuth = onAuthStateChanged(auth, handleAuth);
+        // 1. Escuchar el estado de autenticación básico
+        const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
+            if (!isRedirecting) handleUserData(u);
+        });
 
-        // MANEJO CRÍTICO DE REDIRECCIÓN (GOOGLE MÓVIL)
+        // 2. Manejar el resultado de la redirección de Google (Móviles)
         getRedirectResult(auth)
             .then((result) => {
-                isGoogleRedirecting = false;
+                isRedirecting = false;
                 if (result?.user) {
-                    handleAuth(result.user);
-                } else if (!auth.currentUser) {
-                    setLoading(false);
+                    handleUserData(result.user);
                 } else {
-                    // Si ya hay un usuario (por persistencia), quitamos carga
-                    setLoading(false);
+                    // Si no venimos de un login de Google, evaluamos el usuario actual
+                    handleUserData(auth.currentUser);
                 }
             })
             .catch((error) => {
-                console.error("Error en redirección Google:", error);
-                isGoogleRedirecting = false;
+                console.error("Error en redirección:", error);
+                isRedirecting = false;
                 setLoading(false);
             });
 
