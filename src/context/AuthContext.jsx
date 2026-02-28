@@ -12,36 +12,46 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let unsubscribeDoc = null;
-        let isHandlingRedirect = true;
 
-        // Persistencia para móviles
+        // Forzar persistencia para evitar perder sesión en móviles
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const syncUser = (firebaseUser) => {
+        // Procesar resultado de redirección (Crucial para Google en móvil)
+        // Solo para capturar errores, onAuthStateChanged manejará el usuario
+        getRedirectResult(auth).catch((error) => {
+            console.error("Error en resultado de redirección:", error);
+            setLoading(false);
+        });
+
+        const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
             if (unsubscribeDoc) {
                 unsubscribeDoc();
                 unsubscribeDoc = null;
             }
 
             if (firebaseUser) {
-                const userRef = doc(db, 'users', firebaseUser.uid);
                 setUser(firebaseUser);
+                const userRef = doc(db, 'users', firebaseUser.uid);
 
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Crear perfil para el nuevo héroe
+                        // Crear perfil para usuario nuevo
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
                             accesoPremium: false,
-                            heroProfile: { name: firebaseUser.displayName || 'Héroe', gender: 'boy', avatar: 1 },
+                            heroProfile: {
+                                name: firebaseUser.displayName || 'Héroe',
+                                gender: 'boy',
+                                avatar: 1
+                            },
                             createdAt: serverTimestamp()
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }
-                    if (!isHandlingRedirect) setLoading(false);
+                    setLoading(false);
                 }, (error) => {
                     console.error("Firestore Error:", error);
                     setLoading(false);
@@ -49,32 +59,7 @@ export const AuthProvider = ({ children }) => {
             } else {
                 setUser(null);
                 setUserData(null);
-                if (!isHandlingRedirect) setLoading(false);
-            }
-        };
-
-        // Procesar resultado de Google (especialmente para móviles)
-        getRedirectResult(auth)
-            .then((result) => {
-                isHandlingRedirect = false;
-                if (result?.user) {
-                    syncUser(result.user);
-                } else {
-                    // Si no venimos de un redirect, evaluamos el usuario actual
-                    syncUser(auth.currentUser);
-                }
-            })
-            .catch((error) => {
-                console.error("Redirect Error:", error);
-                isHandlingRedirect = false;
                 setLoading(false);
-            });
-
-        // Este listener escucha siempre (incluyendo el Logout)
-        const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
-            // Solo procesamos aquí si ya terminó el chequeo inicial de Google
-            if (!isHandlingRedirect) {
-                syncUser(u);
             }
         });
 
@@ -91,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             await auth.signOut();
-            // Recargamos para limpiar cualquier residuo de Google en el móvil
+            // Redirección forzada para limpiar estado en móviles
             window.location.href = '/login';
         } catch (error) {
             console.error("Error al cerrar sesión:", error);
