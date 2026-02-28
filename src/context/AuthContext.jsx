@@ -1,38 +1,33 @@
-import React from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
-const AuthContext = React.createContext();
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = React.useState(null);
-    const [userData, setUserData] = React.useState(null);
-    const [loading, setLoading] = React.useState(true);
+    const [user, setUser] = useState(null);
+    const [userData, setUserData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         let unsubscribeDoc = null;
 
-        // Persistencia local para que no te pida login cada vez
+        // Asegurar persistencia local (vital para móviles)
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        // Procesar resultado de redirección (Crucial para móviles)
-        getRedirectResult(auth).catch(console.error);
-
         const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-            if (unsubscribeDoc) unsubscribeDoc();
-
+            // Si el estado cambia a "logueado", NO quitamos el loading hasta tener los datos de Firestore
             if (firebaseUser) {
+                setUser(firebaseUser);
                 const userRef = doc(db, 'users', firebaseUser.uid);
 
-                // Escuchar perfil del usuario
+                // Escuchamos Firestore
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
-                        setUser(firebaseUser);
-                        setLoading(false);
                     } else {
-                        // Creación automática para nuevos usuarios
+                        // Si el usuario es nuevo, creamos su perfil básico
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -42,16 +37,22 @@ export const AuthProvider = ({ children }) => {
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }
+                    // Solo aquí decimos que la carga terminó
+                    setLoading(false);
                 }, (err) => {
-                    console.error("Firestore Error:", err);
+                    console.error("Error en Snapshot:", err);
                     setLoading(false);
                 });
             } else {
+                // Si no hay usuario, limpiamos todo y terminamos carga
                 setUser(null);
                 setUserData(null);
                 setLoading(false);
             }
         });
+
+        // Manejar el resultado del redirect de Google de forma silenciosa
+        getRedirectResult(auth).catch(console.error);
 
         return () => {
             unsubscribeAuth();
@@ -59,11 +60,18 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
+    const value = {
+        user,
+        userData,
+        isPremium: userData?.accesoPremium === true,
+        loading
+    };
+
     return (
-        <AuthContext.Provider value={{ user, userData, loading, isPremium: userData?.accesoPremium === true }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => React.useContext(AuthContext);
+export const useAuth = () => useContext(AuthContext);

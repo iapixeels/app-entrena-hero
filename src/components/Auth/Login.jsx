@@ -13,6 +13,7 @@ const Login = () => {
     const navigate = useNavigate();
     const { user, loading: authLoading } = useAuth();
 
+    // Redirección instantánea si ya estamos logueados
     useEffect(() => {
         if (!authLoading && user) {
             navigate('/');
@@ -24,7 +25,7 @@ const Login = () => {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
             if (isMobile) {
-                // En móviles usamos redirect para evitar problemas de popups bloqueados
+                // En móviles usamos redirect para evitar que el navegador bloquee el popup
                 await signInWithRedirect(auth, googleProvider);
             } else {
                 await signInWithPopup(auth, googleProvider);
@@ -54,7 +55,7 @@ const Login = () => {
 
     return (
         <div className="min-h-screen bg-background-dark flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Background elements */}
+            {/* Background Decor */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
@@ -95,7 +96,7 @@ const Login = () => {
                                 <input
                                     type="email"
                                     placeholder="nombre@ejemplo.com"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium placeholder:font-normal"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -110,7 +111,7 @@ const Login = () => {
                                 <input
                                     type="password"
                                     placeholder="••••••••"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium placeholder:font-normal"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -141,11 +142,11 @@ const Login = () => {
                         </div>
                     </div>
 
-                    {/* Botón de Google Estándar y Premium */}
+                    {/* Botón de Google Estándar Oficial */}
                     <button
                         onClick={handleGoogleLogin}
                         disabled={authLoading}
-                        className="w-full bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-4 hover:bg-slate-100 active:scale-95 transition-all shadow-lg overflow-hidden relative group"
+                        className="w-full bg-white text-black font-semibold py-4 rounded-2xl flex items-center justify-center gap-4 hover:bg-slate-100 active:scale-95 transition-all shadow-lg overflow-hidden relative group"
                     >
                         {/* Logo oficial de Google */}
                         <svg className="w-6 h-6" viewBox="0 0 24 24">
@@ -154,12 +155,12 @@ const Login = () => {
                             <path fill="#FBBC05" d="M5.84 14.13a7.07 7.07 0 0 1 0-4.26V7.03H2.18a11.99 11.99 0 0 0 0 9.94l3.66-2.84z" />
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.03l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
-                        <span className="text-sm">Continuar con Google</span>
+                        <span className="text-sm">Inicia sesión con Google</span>
                     </button>
 
                     <div className="text-center mt-10">
                         <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
-                            ¿NUEVO EN LA ACADEMIA? <Link to="/register" className="text-primary hover:text-primary-light transition-colors ml-1 italic font-black">CREAR PERFIL</Link>
+                            ¿ES TU PRIMERA VEZ? <Link to="/register" className="text-primary hover:text-primary-light transition-colors ml-1 italic font-black">CREAR PERFIL</Link>
                         </p>
                     </div>
                 </div>
