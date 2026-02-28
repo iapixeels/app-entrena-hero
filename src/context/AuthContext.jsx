@@ -13,82 +13,54 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         let unsubscribeDoc = null;
 
-        // Manejar resultado de redirección (importante para móviles)
-        getRedirectResult(auth).catch((error) => {
-            console.error("Error al procesar redirección de Google:", error);
-        });
-
         const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-            // Limpiar listener previo si existe
+            console.log("Estado de Auth cambiado:", firebaseUser ? "Usuario detectado" : "Sin usuario");
+
+            // Limpiar listener anterior
             if (unsubscribeDoc) {
                 unsubscribeDoc();
                 unsubscribeDoc = null;
             }
 
             if (firebaseUser) {
+                // PRIMERO: Establecer el usuario de Auth inmediatamente
+                setUser(firebaseUser);
+
                 const userRef = doc(db, 'users', firebaseUser.uid);
 
-                // Listener en tiempo real para progreso y stats
-                unsubscribeDoc = onSnapshot(userRef, async (docSnap) => {
-                    try {
-                        if (docSnap.exists()) {
-                            setUserData(docSnap.data());
-                            setUser(firebaseUser);
-                            setLoading(false);
-                        } else {
-                            console.log("Creando perfil nuevo en Firestore...");
-                            const newUserData = {
-                                uid: firebaseUser.uid,
-                                email: firebaseUser.email,
-                                name: firebaseUser.displayName || 'Nuevo Héroe',
-                                accesoPremium: false,
-                                coins: 0,
-                                streak: 0,
-                                profilePhoto: firebaseUser.photoURL || null,
-                                heroProfile: {
-                                    gender: 'boy',
-                                    avatar: 1,
-                                    name: firebaseUser.displayName || 'Héroe',
-                                },
-                                heroData: {
-                                    name: firebaseUser.displayName || 'Héroe',
-                                    origin: 'titan'
-                                },
-                                inventory: {
-                                    xp: 0,
-                                    level: 1,
-                                    items: [],
-                                    lastUpdated: serverTimestamp()
-                                },
-                                equippedItems: {
-                                    suit: null,
-                                    cape: null,
-                                    pet: null,
-                                    aura: null
-                                },
-                                completedMissions: {
-                                    strength: 0,
-                                    speed: 0,
-                                    flexibility: 0
-                                },
-                                rewards: {
-                                    strength: { realReward: '', cyclesCompleted: 0, rewardDelivered: false },
-                                    speed: { realReward: '', cyclesCompleted: 0, rewardDelivered: false },
-                                    flexibility: { realReward: '', cyclesCompleted: 0, rewardDelivered: false }
-                                },
-                                createdAt: serverTimestamp(),
-                                lastUpdated: serverTimestamp()
-                            };
-                            await setDoc(userRef, newUserData);
-                            // El siguiente snapshot se encargará de poner loading en false
-                        }
-                    } catch (error) {
-                        console.error("Error procesando datos de usuario:", error);
+                // SEGUNDO: Escuchar los datos de Firestore
+                unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        console.log("Datos de Firestore cargados:", data.heroProfile?.name);
+                        setUserData(data);
                         setLoading(false);
+                    } else {
+                        console.log("El documento del usuario no existe, creándolo...");
+                        // Creamos el documento si no existe
+                        const newUserData = {
+                            uid: firebaseUser.uid,
+                            email: firebaseUser.email,
+                            name: firebaseUser.displayName || 'Nuevo Héroe',
+                            accesoPremium: false,
+                            coins: 0,
+                            streak: 0,
+                            profilePhoto: firebaseUser.photoURL || null,
+                            heroProfile: {
+                                gender: 'boy',
+                                avatar: 1,
+                                name: firebaseUser.displayName || 'Héroe',
+                            },
+                            inventory: { xp: 0, level: 1, items: [] },
+                            createdAt: serverTimestamp(),
+                            lastUpdated: serverTimestamp()
+                        };
+                        setDoc(userRef, newUserData).catch(err => console.error("Error al crear usuario:", err));
+                        // El snapshot volverá a dispararse tras el setDoc
                     }
                 }, (error) => {
-                    console.error("Error en listener de Firestore:", error);
-                    setLoading(false);
+                    console.error("Error en Snapshot de Firestore:", error);
+                    setLoading(false); // No bloquear la app si falla Firestore
                 });
             } else {
                 setUser(null);
