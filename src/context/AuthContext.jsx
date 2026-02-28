@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, onSnapshot, getDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -13,22 +13,25 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         let unsubscribeDoc = null;
 
-        // Persistencia local para móviles
+        // Persistencia para que no pierda sesión en móviles al cambiar de pestaña
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const syncUserWithFirestore = (firebaseUser) => {
+        const syncUser = async (firebaseUser) => {
             if (unsubscribeDoc) unsubscribeDoc();
 
             if (firebaseUser) {
+                console.log("Sesión activa detectada para:", firebaseUser.email);
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 setUser(firebaseUser);
 
-                // Escuchamos los datos de Premium
+                // Escuchamos el perfil de Firestore en tiempo real
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
-                        setUserData(docSnap.data());
+                        const data = docSnap.data();
+                        setUserData(data);
+                        console.log("Datos de héroe sincronizados.");
                     } else {
-                        // Crear perfil inicial si no existe
+                        console.log("Héroe nuevo, creando perfil...");
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -40,31 +43,32 @@ export const AuthProvider = ({ children }) => {
                     }
                     setLoading(false);
                 }, (error) => {
-                    console.error("Firestore Error:", error);
+                    console.error("Error en Snapshot:", error);
                     setLoading(false);
                 });
             } else {
+                console.log("Sin sesión de héroe.");
                 setUser(null);
                 setUserData(null);
                 setLoading(false);
             }
         };
 
-        // Procesar resultado de Google (especialmente para móviles)
+        // Escuchar el resultado de redirección (Crucial para estabilidad móvil de Google)
         getRedirectResult(auth)
             .then((result) => {
                 if (result?.user) {
-                    syncUserWithFirestore(result.user);
+                    console.log("Entrando desde Google Redirect...");
+                    syncUser(result.user);
                 } else {
-                    // Si no venimos de un redirect, escuchamos el estado normal
-                    const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
-                        syncUserWithFirestore(u);
+                    // Escuchar estado normal (persistente)
+                    onAuthStateChanged(auth, (firebaseUser) => {
+                        syncUser(firebaseUser);
                     });
-                    return () => unsubscribeAuth();
                 }
             })
-            .catch((err) => {
-                console.error("Redirect Error:", err);
+            .catch((error) => {
+                console.error("Error Auth Redirect:", error);
                 setLoading(false);
             });
 
