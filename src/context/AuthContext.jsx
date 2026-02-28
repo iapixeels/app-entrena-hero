@@ -1,84 +1,49 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
-const AuthContext = createContext();
+const AuthContext = React.createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [userData, setUserData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [authError, setAuthError] = useState(null);
+    const [user, setUser] = React.useState(null);
+    const [userData, setUserData] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
 
-    useEffect(() => {
+    React.useEffect(() => {
         let unsubscribeDoc = null;
 
-        // Forzar persistencia local
-        setPersistence(auth, browserLocalPersistence)
-            .catch(err => console.error("Error de persistencia:", err));
+        // Persistencia local para que no te pida login cada vez
+        setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        // Manejar resultado de redirección (Crucial para estabilidad en móviles)
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result?.user) {
-                    console.log("Login por redirección exitoso:", result.user.email);
-                }
-            })
-            .catch((error) => {
-                console.error("Error en resultado de redirección:", error);
-                setAuthError("Error de sincronización con Google.");
-            });
+        // Procesar resultado de redirección (Crucial para móviles)
+        getRedirectResult(auth).catch(console.error);
 
-        const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-            console.log("Firebase Auth State:", firebaseUser ? "Logueado" : "Desconectado");
-
-            // Limpiar listener anterior
-            if (unsubscribeDoc) {
-                unsubscribeDoc();
-                unsubscribeDoc = null;
-            }
+        const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+            if (unsubscribeDoc) unsubscribeDoc();
 
             if (firebaseUser) {
-                // PRIMERO: Establecer el usuario de Auth inmediatamente
-                setUser(firebaseUser);
-
                 const userRef = doc(db, 'users', firebaseUser.uid);
 
-                // SEGUNDO: Escuchar los datos de Firestore
+                // Escuchar perfil del usuario
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        console.log("Datos de Firestore cargados:", data.heroProfile?.name);
-                        setUserData(data);
+                        setUserData(docSnap.data());
+                        setUser(firebaseUser);
                         setLoading(false);
                     } else {
-                        console.log("Usuario detectado pero sin perfil en DB. Creando...");
-                        // Creamos el documento si no existe
-                        const newUserData = {
+                        // Creación automática para nuevos usuarios
+                        const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
-                            name: firebaseUser.displayName || 'Nuevo Héroe',
                             accesoPremium: false,
-                            coins: 0,
-                            streak: 0,
-                            profilePhoto: firebaseUser.photoURL || null,
-                            heroProfile: { gender: 'boy', name: firebaseUser.displayName || 'Héroe', avatar: 1 },
-                            inventory: { xp: 0, level: 1, items: [] },
-                            createdAt: serverTimestamp(),
-                            lastUpdated: serverTimestamp()
+                            heroProfile: { name: firebaseUser.displayName || 'Héroe', gender: 'boy', avatar: 1 },
+                            createdAt: serverTimestamp()
                         };
-                        setDoc(userRef, newUserData)
-                            .then(() => console.log("Perfil base creado"))
-                            .catch(err => {
-                                console.error("Error creando perfil:", err);
-                                setAuthError("Error al inicializar perfil.");
-                                setLoading(false);
-                            });
+                        setDoc(userRef, initData).catch(console.error);
                     }
-                }, (error) => {
-                    console.error("Error en Snapshot:", error);
-                    setAuthError("Error de conexión con la base de datos.");
+                }, (err) => {
+                    console.error("Firestore Error:", err);
                     setLoading(false);
                 });
             } else {
@@ -94,19 +59,11 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
-    const value = {
-        user,
-        userData,
-        isPremium: userData?.accesoPremium === true,
-        loading,
-        authError
-    };
-
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{ user, userData, loading, isPremium: userData?.accesoPremium === true }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => React.useContext(AuthContext);
