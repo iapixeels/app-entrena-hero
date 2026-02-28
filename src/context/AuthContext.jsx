@@ -13,21 +13,26 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         let unsubscribeDoc = null;
 
-        // Asegurar persistencia local (vital para móviles)
+        // Aseguramos la persistencia para que el móvil no pierda la sesión durante el salto a Google
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-            // Si el estado cambia a "logueado", NO quitamos el loading hasta tener los datos de Firestore
-            if (firebaseUser) {
-                setUser(firebaseUser);
-                const userRef = doc(db, 'users', firebaseUser.uid);
+        const handleAuthChange = (firebaseUser) => {
+            // Si el estado cambia, limpiamos cualquier conexión previa
+            if (unsubscribeDoc) {
+                unsubscribeDoc();
+                unsubscribeDoc = null;
+            }
 
-                // Escuchamos Firestore
+            if (firebaseUser) {
+                const userRef = doc(db, 'users', firebaseUser.uid);
+                setUser(firebaseUser);
+
+                // IMPORTANTE: No marcamos loading como false hasta que Firestore responda
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Si el usuario es nuevo, creamos su perfil básico
+                        // Crear documento si no existe (primer ingreso)
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
@@ -37,22 +42,25 @@ export const AuthProvider = ({ children }) => {
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }
-                    // Solo aquí decimos que la carga terminó
                     setLoading(false);
-                }, (err) => {
-                    console.error("Error en Snapshot:", err);
+                }, (error) => {
+                    console.error("Firestore Error:", error);
                     setLoading(false);
                 });
             } else {
-                // Si no hay usuario, limpiamos todo y terminamos carga
                 setUser(null);
                 setUserData(null);
                 setLoading(false);
             }
-        });
+        };
 
-        // Manejar el resultado del redirect de Google de forma silenciosa
-        getRedirectResult(auth).catch(console.error);
+        const unsubscribeAuth = onAuthStateChanged(auth, handleAuthChange);
+
+        // Capturar resultado de redirección de Google (Vital para móviles)
+        getRedirectResult(auth).catch((error) => {
+            console.error("Redirect Error:", error);
+            setLoading(false);
+        });
 
         return () => {
             unsubscribeAuth();
@@ -60,10 +68,15 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
+    // Verificación de Premium Flexible
+    const isPremium = userData?.accesoPremium === true ||
+        String(userData?.accesoPremium).toLowerCase() === 'true' ||
+        userData?.accesoPremium === 1;
+
     const value = {
         user,
         userData,
-        isPremium: userData?.accesoPremium === true,
+        isPremium,
         loading
     };
 
