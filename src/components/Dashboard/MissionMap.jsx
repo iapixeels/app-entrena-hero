@@ -2,48 +2,52 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Play, Zap, Dumbbell, Target } from 'lucide-react';
 import MissionPlayer from './MissionPlayer';
+import { useAuth } from '../../context/AuthContext';
 
 const missions = [
     {
         id: 'ciudad-fuerza',
+        dbId: 'strength',
         title: 'Ciudad Fuerza',
         sector: 'Sector Alpha',
         description: 'Entrenamiento de resistencia y poder muscular.',
         icon: <Dumbbell className="text-primary" />,
         color: 'primary',
         locked: false,
-        image: 'https://images.unsplash.com/photo-1573333233956-618817fc1ad5?auto=format&fit=crop&q=80&w=800',
-        progress: 45
+        image: '/imagenes/Nene haciendo ejercicio.jpeg',
+        video: '/videos/Nino gimnasta 3-4.mp4'
     },
     {
         id: 'pista-turbo',
+        dbId: 'speed',
         title: 'Pista Turbo',
         sector: 'Sector Beta',
         description: 'Agilidad, velocidad y reflejos de superhéroe.',
         icon: <Zap className="text-secondary" />,
         color: 'secondary',
-        locked: true,
-        image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
-        progress: 0
+        locked: false,
+        image: '/imagenes/speed.jpeg',
+        video: '/videos/speed 3-4.mp4'
     },
     {
         id: 'jungla-zen',
+        dbId: 'flexibility',
         title: 'Jungla Zen',
         sector: 'Sector Omega',
         description: 'Flexibilidad, equilibrio y enfoque mental.',
         icon: <Target className="text-accent" />,
         color: 'accent',
-        locked: true,
-        image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800',
-        progress: 0
+        locked: false,
+        image: '/imagenes/flexibility.jpeg',
+        video: '/videos/flexibility 3-4.mp4'
     }
 ];
 
-const MissionCard = ({ mission, onClick }) => {
+const MissionCard = ({ mission, onClick, currentProgress }) => {
     return (
         <motion.div
             whileHover={mission.locked ? {} : { y: -10 }}
-            onClick={() => !mission.locked && onClick(mission)}
+            onClick={() => !mission.locked && onClick({ ...mission, progress: currentProgress })}
             className={`relative group h-[450px] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl ${mission.locked ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}
         >
             {/* Background Image */}
@@ -69,12 +73,12 @@ const MissionCard = ({ mission, onClick }) => {
                     <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
                             <span>Progreso de Misión</span>
-                            <span className="text-primary">{mission.progress}%</span>
+                            <span className="text-primary">{currentProgress || 0}%</span>
                         </div>
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${mission.progress}%` }}
+                                animate={{ width: `${currentProgress || 0}%` }}
                                 className="h-full bg-primary shadow-[0_0_10px_rgba(0,127,255,0.5)]"
                             />
                         </div>
@@ -98,18 +102,25 @@ const MissionCard = ({ mission, onClick }) => {
 };
 
 const MissionMap = () => {
+    const { userData } = useAuth();
     const [selectedMission, setSelectedMission] = useState(null);
 
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {missions.map((mission) => (
-                    <MissionCard
-                        key={mission.id}
-                        mission={mission}
-                        onClick={setSelectedMission}
-                    />
-                ))}
+                {missions.map((mission) => {
+                    const missionCount = userData?.completedMissions?.[mission.dbId] || 0;
+                    const progressPercentage = Math.min(100, missionCount * 5);
+
+                    return (
+                        <MissionCard
+                            key={mission.id}
+                            mission={mission}
+                            currentProgress={progressPercentage}
+                            onClick={setSelectedMission}
+                        />
+                    );
+                })}
             </div>
 
             <AnimatePresence>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Heart, Zap, Shield } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const Skill = ({ name, level, max, icon: Icon, color }) => (
     <div className="space-y-4">
@@ -27,6 +28,9 @@ const Skill = ({ name, level, max, icon: Icon, color }) => (
 );
 
 const SkillsTree = () => {
+    const { userData } = useAuth();
+    const missions = userData?.completedMissions || {};
+
     return (
         <div className="glass p-10 rounded-[2.5rem] border-white/5 space-y-10">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -41,10 +45,10 @@ const SkillsTree = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-                <Skill name="Fuerza Bruta" level={3} max={10} icon={Heart} color="primary" />
-                <Skill name="Velocidad Turbo" level={5} max={10} icon={Zap} color="secondary" />
-                <Skill name="Resistencia Elite" level={2} max={10} icon={Shield} color="accent" />
-                <Skill name="Concentración" level={7} max={10} icon={Brain} color="yellow-500" />
+                <Skill name="Fuerza Bruta" level={Math.min(10, Math.floor((missions.strength || 0) / 2))} max={10} icon={Heart} color="primary" />
+                <Skill name="Velocidad Turbo" level={Math.min(10, Math.floor((missions.speed || 0) / 2))} max={10} icon={Zap} color="secondary" />
+                <Skill name="Resistencia Elite" level={Math.min(10, Math.floor((missions.flexibility || 0) / 2))} max={10} icon={Shield} color="accent" />
+                <Skill name="Enfoque Mental" level={Math.min(10, Math.floor(((missions.strength || 0) + (missions.speed || 0) + (missions.flexibility || 0)) / 6))} max={10} icon={Brain} color="yellow-500" />
             </div>
         </div>
     );

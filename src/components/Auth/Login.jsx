@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { auth, googleProvider } from '../../lib/firebase';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { Mail, Lock, LogIn, Github as GoogleIcon, AlertCircle } from 'lucide-react';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { Mail, Lock, LogIn, Github as GoogleIcon, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Login = () => {
+    const { user, loading: authLoading } = useAuth();
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!authLoading && user) {
+            navigate('/');
+        }
+    }, [user, authLoading, navigate]);
 
     const handleEmailLogin = async (e) => {
         e.preventDefault();
@@ -16,6 +28,7 @@ const Login = () => {
         setError('');
         try {
             await signInWithEmailAndPassword(auth, email, password);
+            navigate('/');
         } catch (err) {
             setError('Credenciales incorrectas. Inténtalo de nuevo.');
             console.error(err);
@@ -25,9 +38,18 @@ const Login = () => {
 
     const handleGoogleLogin = async () => {
         try {
-            await signInWithPopup(auth, googleProvider);
+            // Detectar si es dispositivo móvil para usar redirect en lugar de popup
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                await signInWithRedirect(auth, googleProvider);
+            } else {
+                await signInWithPopup(auth, googleProvider);
+                navigate('/');
+            }
         } catch (err) {
-            console.error(err);
+            console.error("Error en Google Login:", err);
+            setError('Error al conectar con Google.');
         }
     };
 
@@ -45,7 +67,7 @@ const Login = () => {
                 <div className="text-center mb-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-6">
                         <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-                        <span className="text-primary text-[10px] font-bold uppercase tracking-widest">Protocolo de Acceso</span>
+                        <span className="text-primary text-[10px] font-bold uppercase tracking-widest">Portal de Academia</span>
                     </div>
                     <h2 className="text-4xl font-black italic uppercase tracking-tighter">
                         Entrena <span className="text-primary text-glow">Hero</span>
@@ -76,13 +98,20 @@ const Login = () => {
                     <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={20} />
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             placeholder="Contraseña Secreta"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-light"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all font-light"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                     </div>
 
                     <button
@@ -90,7 +119,7 @@ const Login = () => {
                         disabled={loading}
                         className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
                     >
-                        {loading ? 'Sincronizando...' : <><LogIn size={20} /> Entrar al Cuartel</>}
+                        {loading ? 'Sincronizando...' : <><LogIn size={20} /> Entrar a la Academia</>}
                     </button>
                 </form>
 
@@ -109,7 +138,7 @@ const Login = () => {
                 </button>
 
                 <p className="text-center text-slate-500 text-xs mt-10">
-                    ¿Aún no eres un recluta? <span className="text-primary font-bold cursor-pointer hover:underline">Reclutamiento Abierto</span>
+                    ¿Aún no eres un héroe? <Link to="/register" className="text-primary font-bold cursor-pointer hover:underline">¡Únete a la academia!</Link>
                 </p>
             </motion.div>
         </div>

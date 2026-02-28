@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
 import AccesoRequerido from './components/Auth/AccesoRequerido';
 
 // Importaremos estos después
@@ -14,6 +15,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/acceso-requerido" element={
             <ProtectedRoute requirePremium={false}>
               <AccesoRequerido />
