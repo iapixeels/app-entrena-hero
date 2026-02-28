@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, getRedirectResult, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -12,40 +12,42 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let unsubscribeDoc = null;
-        let isRedirecting = true; // Forzamos estado de espera inicial
+        let isHandlingRedirect = true; // Empezamos asumiendo que Google está procesando
 
-        // Aseguramos persistencia local para que no se pierda la sesión al recargar
         setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-        const handleUserData = (firebaseUser) => {
+        const syncUser = (firebaseUser) => {
             if (unsubscribeDoc) unsubscribeDoc();
 
             if (firebaseUser) {
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 setUser(firebaseUser);
 
-                // Escucha de Firestore en tiempo real para datos Premium
                 unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserData(docSnap.data());
                     } else {
-                        // Crear perfil para el nuevo Héroe de Google
+                        // Creación inmediata para evitar rebotes a 'register'
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
                             accesoPremium: false,
-                            heroProfile: { name: firebaseUser.displayName || 'Héroe', gender: 'boy', avatar: 1 },
+                            heroProfile: {
+                                name: firebaseUser.displayName || 'Héroe',
+                                gender: 'boy',
+                                avatar: 1
+                            },
                             createdAt: serverTimestamp()
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }
-                    if (!isRedirecting) setLoading(false);
+                    if (!isHandlingRedirect) setLoading(false);
                 }, (error) => {
                     console.error("Firestore Error:", error);
-                    if (!isRedirecting) setLoading(false);
+                    setLoading(false);
                 });
             } else {
-                if (!isRedirecting) {
+                if (!isHandlingRedirect) {
                     setUser(null);
                     setUserData(null);
                     setLoading(false);
@@ -53,25 +55,24 @@ export const AuthProvider = ({ children }) => {
             }
         };
 
-        // 1. Escuchar el estado de autenticación básico
+        // 1. Escuchar cambios de Auth normales
         const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
-            if (!isRedirecting) handleUserData(u);
+            if (!isHandlingRedirect) syncUser(u);
         });
 
-        // 2. Manejar el resultado de la redirección de Google (Móviles)
+        // 2. Resolver Redirect de Google (VITAL PARA MÓVILES)
         getRedirectResult(auth)
             .then((result) => {
-                isRedirecting = false;
+                isHandlingRedirect = false;
                 if (result?.user) {
-                    handleUserData(result.user);
+                    syncUser(result.user);
                 } else {
-                    // Si no venimos de un login de Google, evaluamos el usuario actual
-                    handleUserData(auth.currentUser);
+                    syncUser(auth.currentUser);
                 }
             })
-            .catch((error) => {
-                console.error("Error en redirección:", error);
-                isRedirecting = false;
+            .catch((err) => {
+                console.error("Redirect Error:", err);
+                isHandlingRedirect = false;
                 setLoading(false);
             });
 

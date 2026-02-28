@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import { Shield, Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { auth, googleProvider } from '../../lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { user, loading: authLoading } = useAuth();
@@ -45,8 +46,7 @@ const Login = () => {
         setError('');
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            // IMPORTANTE: No llamamos a navigate() aquí. 
-            // Esperamos que el useEffect de arriba detecte el cambio de estado de Auth.
+            // No llamamos a navigate() aquí. Esperamos al useEffect de arriba.
         } catch (err) {
             console.error("Error Email Login:", err.code);
             setError('Email o contraseña incorrectos.');
@@ -55,6 +55,7 @@ const Login = () => {
 
     return (
         <div className="min-h-screen bg-background-dark flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Background Decor */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
@@ -66,7 +67,7 @@ const Login = () => {
                 className="w-full max-w-md relative z-10"
             >
                 <div className="text-center mb-8">
-                    <div className="inline-flex p-4 rounded-3xl bg-primary/10 border border-primary/20 mb-6">
+                    <div className="inline-flex p-4 rounded-3xl bg-primary/10 border border-primary/20 mb-6 font-display">
                         <Shield className="w-12 h-12 text-primary" />
                     </div>
                     <h1 className="text-4xl font-black italic uppercase tracking-tighter text-white mb-2">
@@ -80,7 +81,7 @@ const Login = () => {
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 mb-6 font-display"
+                            className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 mb-6"
                         >
                             <AlertCircle size={20} />
                             <p className="text-xs font-bold uppercase tracking-tight">{error}</p>
@@ -95,7 +96,7 @@ const Login = () => {
                                 <input
                                     type="email"
                                     placeholder="nombre@ejemplo.com"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium placeholder:font-normal"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -108,13 +109,20 @@ const Login = () => {
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all text-sm"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-all font-medium placeholder:font-normal"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-primary transition-colors focus:outline-none"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
                             </div>
                         </div>
 
@@ -137,11 +145,10 @@ const Login = () => {
                             <div className="w-full border-t border-white/10" />
                         </div>
                         <div className="relative flex justify-center text-[10px]">
-                            <span className="bg-[#0f172a] px-4 text-slate-500 font-bold uppercase tracking-widest text-[9px]">O continuar con</span>
+                            <span className="bg-[#0f172a] px-4 text-slate-500 font-bold uppercase tracking-widest">O continuar con</span>
                         </div>
                     </div>
 
-                    {/* BOTÓN GOOGLE OFICIAL ESTÁNDAR */}
                     <button
                         onClick={handleGoogleLogin}
                         disabled={authLoading}
