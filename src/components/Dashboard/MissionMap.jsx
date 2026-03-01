@@ -51,8 +51,8 @@ const MissionCard = ({ mission, onClick, currentProgress }) => {
             className={`relative group h-[450px] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl ${mission.locked ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}
         >
             {/* Background Image */}
-            <img src={mission.image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-40" alt={mission.title} />
-            <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/20 to-transparent" />
+            <img src={mission.image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80" alt={mission.title} />
+            <div className="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-background-dark/30 to-transparent" />
 
             {/* Content */}
             <div className="absolute inset-0 p-8 flex flex-col justify-end">
