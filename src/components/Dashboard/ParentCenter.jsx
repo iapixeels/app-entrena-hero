@@ -4,7 +4,7 @@ import { ShieldCheck, Timer, Gift, Lock, X, Check, Save, Trophy, Camera, Upload,
 import { useAuth } from '../../context/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '../../lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const ParentCenter = ({ isOpen, onClose }) => {
     const { userData } = useAuth();
@@ -57,29 +57,23 @@ const ParentCenter = ({ isOpen, onClose }) => {
     };
 
     const handlePhotoUpload = async (e) => {
-        const file = e.target.files[0];
+        const file = e.target.files?.[0];
         if (!file || !userData) return;
 
         setUploading(true);
         try {
             const storageRef = ref(storage, `profiles/${userData.uid}_hero`);
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            // Usamos uploadBytes directamente con await para un flujo más limpio
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
 
-            uploadTask.on('state_changed',
-                null,
-                (error) => {
-                    console.error("Upload error:", error);
-                    setUploading(false);
-                },
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    setProfilePhoto(downloadURL);
-                    setUploading(false);
-                }
-            );
-        } catch (error) {
-            console.error("Error saving photo:", error);
+            setProfilePhoto(downloadURL);
             setUploading(false);
+            console.log("Foto actualizada exitosamente");
+        } catch (error) {
+            console.error("Error al subir la foto:", error);
+            setUploading(false);
+            alert("No se pudo subir la foto. Verifica los permisos de Firebase Storage.");
         }
     };
 

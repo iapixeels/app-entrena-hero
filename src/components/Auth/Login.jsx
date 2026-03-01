@@ -55,18 +55,22 @@ const Login = () => {
         setLoading(true);
 
         try {
-            // DETECTOR INTELIGENTE: Verificamos si este email usa Google antes de intentar loguear
-            const methods = await fetchSignInMethodsForEmail(auth, email);
-            if (methods.length > 0 && !methods.includes('password')) {
-                setError('Esta cuenta usa Login de Google. Pulsa el botón blanco de Google abajo.');
-                setLoading(false);
-                return;
-            }
-
             await signInWithEmailAndPassword(auth, email, password);
         } catch (err) {
-            if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-                setError('Credenciales incorrectas.');
+            console.error("Login Error:", err.code);
+            // Firebase v10+ usa a veces 'invalid-credential' por seguridad
+            if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                try {
+                    const methods = await fetchSignInMethodsForEmail(auth, email);
+                    if (methods.length > 0 && !methods.includes('password')) {
+                        setError('Esta cuenta usa Login de Google. Pulsa el botón de Google abajo.');
+                    } else {
+                        setError('Email o contraseña incorrectos.');
+                    }
+                } catch (metaError) {
+                    // Si la enumeración está bloqueada, mostramos el error estándar
+                    setError('Email o contraseña incorrectos.');
+                }
             } else {
                 setError('Error al intentar acceder.');
             }
