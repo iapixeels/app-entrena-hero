@@ -242,7 +242,7 @@ const ParentCenter = ({ isOpen, onClose }) => {
 
                                             <div className="flex-1 space-y-4 w-full text-center md:text-left">
                                                 <h4 className="text-lg font-black italic uppercase tracking-tighter text-white">Identidad Seleccionada</h4>
-                                                <p className="text-xs text-slate-400 max-w-sm">La apariencia se ajusta automáticamente según tu identidad para evitar cargos de almacenamiento en la base de datos.</p>
+                                                <p className="text-xs text-slate-400 max-w-sm">El emblema de tu héroe se actualiza automáticamente según su identidad elegida.</p>
                                                 <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
                                                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${gender === 'boy' ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-slate-600'}`}>
                                                         Modo Héroe Activado
