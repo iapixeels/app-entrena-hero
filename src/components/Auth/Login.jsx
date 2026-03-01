@@ -14,30 +14,40 @@ const Login = () => {
     const navigate = useNavigate();
     const { user, loading: authLoading } = useAuth();
 
-    /**
-     * EFECTO CRÍTICO: Solo navegamos al Dashboard cuando el AuthContext
-     * ha terminado de cargar (cargando: false) Y el usuario existe.
-     * Esto evita el "rebote" al login en conexiones móviles.
-     */
+    // Solo redirigimos cuando tenemos la certeza absoluta de que el usuario existe
     useEffect(() => {
         if (!authLoading && user) {
             navigate('/');
         }
     }, [user, authLoading, navigate]);
 
+    // PANTALLA DE CARGA PARA EVITAR EL "FLASH" DEL LOGIN
+    if (authLoading && !user) {
+        return (
+            <div className="min-h-screen bg-background-dark flex flex-col items-center justify-center gap-6">
+                <div className="relative w-24 h-24">
+                    <div className="absolute inset-0 border-4 border-primary/10 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-t-primary rounded-full animate-spin"></div>
+                </div>
+                <p className="text-primary font-black italic uppercase tracking-tighter text-2xl animate-pulse text-center">
+                    Sincronizando <span className="text-white">Academia...</span>
+                </p>
+            </div>
+        );
+    }
+
     const handleGoogleLogin = async () => {
         setError('');
         try {
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             if (isMobile) {
-                // En móvil usamos redirect. La navegación la manejará el useEffect automáticamente al volver.
                 await signInWithRedirect(auth, googleProvider);
             } else {
                 await signInWithPopup(auth, googleProvider);
             }
         } catch (err) {
             console.error("Error Google Login:", err);
-            setError('Error al conectar con Google.');
+            setError('Error de conexión con Google.');
         }
     };
 
@@ -46,16 +56,20 @@ const Login = () => {
         setError('');
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            // No llamamos a navigate() aquí. Esperamos al useEffect de arriba.
         } catch (err) {
             console.error("Error Email Login:", err.code);
-            setError('Email o contraseña incorrectos.');
+            if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+                setError('Email o contraseña incorrectos.');
+            } else if (err.code === 'auth/account-exists-with-different-credential') {
+                setError('Esta cuenta usa Login de Google. Pulsa el botón de Google.');
+            } else {
+                setError('Error al intentar acceder.');
+            }
         }
     };
 
     return (
         <div className="min-h-screen bg-background-dark flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Decor */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
@@ -84,7 +98,7 @@ const Login = () => {
                             className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-2xl flex items-center gap-3 mb-6"
                         >
                             <AlertCircle size={20} />
-                            <p className="text-xs font-bold uppercase tracking-tight">{error}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-tight">{error}</p>
                         </motion.div>
                     )}
 
@@ -129,14 +143,10 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={authLoading}
-                            className="btn-primary w-full py-4 text-lg group active:scale-95 transition-all"
+                            className="btn-primary w-full py-4 text-lg group active:scale-95 transition-all outline-none"
                         >
-                            {authLoading ? 'CONECTANDO...' : (
-                                <>
-                                    ACCEDER POR EMAIL
-                                    <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </>
-                            )}
+                            ACCEDER POR EMAIL
+                            <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
                     </form>
 
@@ -152,7 +162,7 @@ const Login = () => {
                     <button
                         onClick={handleGoogleLogin}
                         disabled={authLoading}
-                        className="w-full bg-white text-slate-700 font-semibold py-4 rounded-2xl flex items-center justify-center gap-4 hover:shadow-lg active:scale-95 transition-all text-sm border border-slate-200"
+                        className="w-full bg-white text-slate-700 font-semibold py-4 rounded-2xl flex items-center justify-center gap-4 hover:shadow-lg active:scale-95 transition-all text-sm border border-slate-200 outline-none"
                     >
                         <svg className="w-6 h-6" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
