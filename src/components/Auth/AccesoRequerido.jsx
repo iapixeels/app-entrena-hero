@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'react-router-dom';
-import { motion as m } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ShieldAlert, Rocket, ChevronRight, LogOut, Lock, Star, Sparkles } from 'lucide-react';
 import { auth } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -14,7 +13,7 @@ const AccesoRequerido = () => {
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[130px] rounded-full animate-pulse" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/10 blur-[130px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
 
-            <m.div
+            <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="max-w-2xl w-full glass p-8 md:p-12 rounded-[3rem] text-center relative z-10 border-white/5 shadow-2xl"
@@ -93,7 +92,7 @@ const AccesoRequerido = () => {
                     Tecnología Segura de Hotmart
                     <span className="h-px bg-white/5 flex-1" />
                 </p>
-            </m.div>
+            </motion.div>
         </div>
     );
 };
