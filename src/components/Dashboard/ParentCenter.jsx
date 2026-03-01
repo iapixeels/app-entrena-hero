@@ -227,36 +227,29 @@ const ParentCenter = ({ isOpen, onClose }) => {
                                         />
                                     </div>
 
-                                    {/* Photo Upload Section */}
+                                    {/* Avatar Visual Section */}
                                     <div className="space-y-4">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Foto del Héroe / Heroína</span>
-                                        <div className="flex flex-col md:flex-row items-center gap-8 glass-card p-6 border-white/5">
-                                            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden group">
-                                                {profilePhoto ? (
-                                                    <img src={profilePhoto} alt="Hero" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <User size={48} className="text-white/10" />
-                                                )}
-                                                {uploading && (
-                                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                                    </div>
-                                                )}
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Apariencia del Héroe / Heroína</span>
+                                        <div className="flex flex-col md:flex-row items-center gap-8 glass-card p-8 border-white/10 bg-white/[0.02]">
+                                            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/10 p-2 glass shadow-2xl">
+                                                <div className={`w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br transition-all duration-700 ${gender === 'girl' ? 'from-accent/40 to-accent/10 shadow-[0_0_40px_rgba(0,255,204,0.3)]' : 'from-primary/40 to-primary/10 shadow-[0_0_40px_rgba(0,127,255,0.3)]'}`}>
+                                                    {gender === 'girl' ?
+                                                        <Trophy size={64} className="text-accent animate-pulse" /> :
+                                                        <ShieldCheck size={64} className="text-primary animate-pulse" />
+                                                    }
+                                                </div>
                                             </div>
 
                                             <div className="flex-1 space-y-4 w-full text-center md:text-left">
-                                                <p className="text-xs text-slate-400">Sube una foto o tómala con la cámara para personalizar el perfil.</p>
-                                                <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                                                    <label className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all">
-                                                        <Camera size={16} />
-                                                        Capturar Foto
-                                                        <input type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoUpload} />
-                                                    </label>
-                                                    <label className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all">
-                                                        <Upload size={16} />
-                                                        Subir Galería
-                                                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                                                    </label>
+                                                <h4 className="text-lg font-black italic uppercase tracking-tighter text-white">Identidad Seleccionada</h4>
+                                                <p className="text-xs text-slate-400 max-w-sm">La apariencia se ajusta automáticamente según tu identidad para evitar cargos de almacenamiento en la base de datos.</p>
+                                                <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
+                                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${gender === 'boy' ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-slate-600'}`}>
+                                                        Modo Héroe Activado
+                                                    </div>
+                                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${gender === 'girl' ? 'bg-accent/20 border-accent text-accent' : 'bg-white/5 border-white/10 text-slate-600'}`}>
+                                                        Modo Heroína Activado
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

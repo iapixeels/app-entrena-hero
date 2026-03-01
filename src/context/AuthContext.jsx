@@ -32,8 +32,14 @@ export const AuthProvider = ({ children }) => {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
                             accesoPremium: false,
-                            heroProfile: { name: firebaseUser.displayName || 'Héroe', gender: 'boy', avatar: 1 },
-                            createdAt: serverTimestamp()
+                            heroProfile: {
+                                name: firebaseUser.displayName || 'Héroe',
+                                gender: 'boy',
+                                avatar: 'boy' // Usamos el género como avatar por defecto
+                            },
+                            createdAt: serverTimestamp(),
+                            inventory: { xp: 0, coins: 50, level: 1, items: [] },
+                            completedMissions: { strength: 0, speed: 0, flexibility: 0 }
                         };
                         setDoc(userRef, initData).catch(console.error);
                     }

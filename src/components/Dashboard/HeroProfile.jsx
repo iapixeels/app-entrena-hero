@@ -104,32 +104,20 @@ const HeroProfile = ({ onClose }) => {
                     <div className="md:w-5/12 p-8 md:p-12 flex flex-col items-center justify-center bg-white/[0.02] border-r border-white/5 relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,127,255,0.1),transparent_70%)]" />
 
-                        {/* Avatar Simulation / Photo Upload */}
-                        <div className="relative w-48 h-48 md:w-64 md:h-64 mb-10 flex items-center justify-center group cursor-pointer">
-                            <input
-                                type="file"
-                                id="hero-photo"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handlePhotoUpload}
-                            />
-                            <motion.label
-                                htmlFor="hero-photo"
+                        {/* Avatar Simulation / Fixed Identity */}
+                        <div className="relative w-48 h-48 md:w-64 md:h-64 mb-10 flex items-center justify-center">
+                            <motion.div
                                 animate={{ y: [0, -10, 0] }}
                                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                                className="w-full h-full rounded-full border-2 border-dashed border-accent/30 flex items-center justify-center p-4 relative cursor-pointer"
+                                className={`w-full h-full rounded-full border-2 border-dashed ${isGirl ? 'border-accent/30' : 'border-primary/30'} flex items-center justify-center p-4 relative shadow-[0_0_50px_rgba(0,0,0,0.3)]`}
                             >
-                                <div className="w-full h-full bg-gradient-to-tr from-accent/20 to-primary/20 rounded-full flex items-center justify-center relative overflow-hidden">
-                                    {userData?.profilePhoto ? (
-                                        <img src={userData.profilePhoto} alt="Hero" className="w-full h-full object-cover" />
+                                <div className={`w-full h-full bg-gradient-to-tr ${isGirl ? 'from-accent/30 to-accent/10' : 'from-primary/30 to-primary/10'} rounded-full flex items-center justify-center relative overflow-hidden glass`}>
+                                    <div className="absolute inset-0 bg-white/5 animate-pulse" />
+                                    {isGirl ? (
+                                        <Trophy size={80} className="text-accent drop-shadow-[0_0_15px_rgba(0,255,204,0.5)]" />
                                     ) : (
-                                        <ShoppingBag size={80} className="text-white/20" />
+                                        <Shield size={80} className="text-primary drop-shadow-[0_0_15px_rgba(0,127,255,0.5)]" />
                                     )}
-
-                                    {/* Upload Overlay */}
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-white">Cambiar Foto</p>
-                                    </div>
 
                                     {/* Equipped Items Overlay Labels */}
                                     <div className="absolute inset-0 pointer-events-none">
@@ -154,12 +142,12 @@ const HeroProfile = ({ onClose }) => {
                                         })}
                                     </div>
                                 </div>
-                            </motion.label>
+                            </motion.div>
                         </div>
 
                         <div className="text-center">
-                            <h4 className="text-xl font-bold uppercase italic mb-1">{userData?.heroProfile?.name || (isGirl ? 'Heroína' : 'Héroe')}</h4>
-                            <p className={`${isGirl ? 'text-accent' : 'text-primary'} text-[9px] font-bold uppercase tracking-widest`}>Estado: En Guardia</p>
+                            <h4 className="text-2xl font-black uppercase italic italic text-white mb-1 tracking-tighter">{userData?.heroProfile?.name || (isGirl ? 'Heroína' : 'Héroe')}</h4>
+                            <p className={`${isGirl ? 'text-accent' : 'text-primary'} text-[10px] font-black uppercase tracking-[0.3em] text-glow`}>Academia de Élite</p>
                         </div>
                     </div>
 

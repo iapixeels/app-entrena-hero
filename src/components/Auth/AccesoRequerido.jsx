@@ -38,7 +38,8 @@ const AccesoRequerido = () => {
             const userRef = doc(db, 'users', user.uid);
             await updateDoc(userRef, {
                 'heroProfile.name': heroName,
-                'heroProfile.gender': heroGender
+                'heroProfile.gender': heroGender,
+                'heroProfile.avatar': heroGender
             });
             setShowProfileSetup(false);
         } catch (err) {

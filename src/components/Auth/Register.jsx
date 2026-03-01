@@ -55,7 +55,7 @@ const Register = () => {
                 heroProfile: {
                     name: name || 'Héroe',
                     gender: gender,
-                    avatar: 1
+                    avatar: gender
                 },
                 createdAt: serverTimestamp()
             });
@@ -99,7 +99,7 @@ const Register = () => {
                 heroProfile: {
                     name: name,
                     gender: gender,
-                    avatar: 1
+                    avatar: gender
                 }
             }, { merge: true });
 
