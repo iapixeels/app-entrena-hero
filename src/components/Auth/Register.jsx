@@ -51,6 +51,7 @@ const Register = () => {
             await setDoc(doc(db, 'users', newUser.uid), {
                 uid: newUser.uid,
                 email: newUser.email,
+                provider: 'password',
                 accesoPremium: false,
                 heroProfile: {
                     name: name || 'Héroe',
@@ -96,6 +97,7 @@ const Register = () => {
         setLoading(true);
         try {
             await setDoc(doc(db, 'users', user.uid), {
+                provider: 'google',
                 heroProfile: {
                     name: name,
                     gender: gender,

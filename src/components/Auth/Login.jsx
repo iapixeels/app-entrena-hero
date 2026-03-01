@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { auth, googleProvider } from '../../lib/firebase';
+import { db, auth, googleProvider } from '../../lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, fetchSignInMethodsForEmail } from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -54,25 +55,45 @@ const Login = () => {
         setError('');
         setLoading(true);
 
+        const cleanEmail = email.trim().toLowerCase();
+
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(auth, cleanEmail, password);
         } catch (err) {
             console.error("Login Error:", err.code);
-            // Firebase v10+ usa a veces 'invalid-credential' por seguridad
-            if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                try {
-                    const methods = await fetchSignInMethodsForEmail(auth, email);
-                    if (methods.length > 0 && !methods.includes('password')) {
-                        setError('Esta cuenta usa Login de Google. Pulsa el botón de Google abajo.');
-                    } else {
-                        setError('Email o contraseña incorrectos.');
-                    }
-                } catch (metaError) {
-                    // Si la enumeración está bloqueada, mostramos el error estándar
-                    setError('Email o contraseña incorrectos.');
+
+            // Intentamos detectar si la cuenta es de Google de forma multi-nivel
+            try {
+                // 1. Intentar vía Auth API
+                const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
+                if (methods.length > 0 && !methods.includes('password')) {
+                    setError('Esta cuenta se registró con GOOGLE. Por favor, pulsa el botón blanco de Google abajo.');
+                    setLoading(false);
+                    return;
                 }
+
+                // 2. Intentar vía Firestore (Respaldo)
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('email', '==', cleanEmail));
+                const querySnap = await getDocs(q);
+
+                if (!querySnap.empty) {
+                    const userDataFromDb = querySnap.docs[0].data();
+                    if (userDataFromDb.provider === 'google') {
+                        setError('TU CUENTA ES DE GOOGLE. Para entrar usa el botón con el logo de Google al final.');
+                        setLoading(false);
+                        return;
+                    }
+                }
+            } catch (metaError) {
+                console.warn("Fallo en detección inteligente:", metaError);
+            }
+
+            // Mensaje por defecto
+            if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                setError('Email o contraseña incorrectos. Si usaste Google para registrarte, haz clic el botón de Google abajo.');
             } else {
-                setError('Error al intentar acceder.');
+                setError('Error al intentar acceder. Revisa tu conexión.');
             }
         }
         setLoading(false);

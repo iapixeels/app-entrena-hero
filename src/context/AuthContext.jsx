@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
                         const initData = {
                             uid: firebaseUser.uid,
                             email: firebaseUser.email,
+                            provider: firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' : 'password',
                             accesoPremium: false,
                             heroProfile: {
                                 name: firebaseUser.displayName || 'Héroe',
